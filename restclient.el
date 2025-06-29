@@ -775,7 +775,7 @@ point as arguments, with ARGS included as the final argument."
       (message "curl command copied to clipboard."))))
 
 
-(defun restclient-elisp-result-function (args offset)
+(defun restclient-elisp-result-function (_args offset)
   "This is a hook constructor function.
 Read one S-expression starting from OFFSET.
 Return a function of 0 arguments that evaluates that S-expression.
