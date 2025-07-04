@@ -216,6 +216,11 @@ GET http://httpbin.org/response-headers?Content-Type=application/vnd.whatever%2B
 GET http://httpbin.org/ip
 -> jq-set-var :my-ip .origin
 
+# set a variable to the value of your ip address using @var syntax
+GET http://httpbin.org/ip
+-> run-hook (restclient-set-var "@my-ip" (cdr (assq 'origin (json-read))))
+
+
 # multiple elsip hooks on call
 GET http://httpbin.org/response-headers?Content-Type=application/vnd.whatever%2Bjson;%20charset=UTF-8
 -> run-hook (message "hook 1")

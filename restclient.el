@@ -670,8 +670,11 @@ DESCRIPTION: Descriptive text."
   "Return the name of a variable, without decorations like `:' or `{{}}'.
 VAR-NAME: a variable with or without decorations."
   (save-match-data
-    (when (string-match restclient-use-var-regexp var-name)
-      (setq var-name (or (match-string 1 var-name) (match-string 2 var-name)))))
+    (cond
+     ((string-match restclient-use-var-regexp var-name)
+      (setq var-name (or (match-string 1 var-name) (match-string 2 var-name))))
+     ((string-match "^@\\([^@ \n]+\\)$" var-name)
+      (setq var-name (match-string 1 var-name)))))
   var-name)
 
 (defun restclient-remove-var (var-name)
