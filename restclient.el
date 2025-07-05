@@ -7,7 +7,7 @@
 ;; Created: 01 Apr 2012
 ;; Keywords: http comm tools
 ;; URL: https://github.com/emacsorphanage/restclient
-;; Package-Requires: ((emacs "26.1"))
+;; Package-Requires: ((emacs "26.1") (compat "30.1.0.0"))
 ;; Version: 1.0
 
 ;; This file is not part of GNU Emacs.
@@ -24,6 +24,7 @@
 (require 'url)
 (require 'json)
 (require 'outline)
+(require 'compat)
 (eval-when-compile (require 'subr-x))
 (eval-when-compile
   (if (version< emacs-version "26")
@@ -694,7 +695,7 @@ VAR-NAME: a variable with or without decorations."
 (defun restclient-remove-var (var-name)
   "Remove VAR-NAME from the list of dynamic variables."
   (let ((var-name (restclient-sanitize-var-name var-name)))
-    (setq restclient-var-overrides (assoc-delete-all var-name restclient-var-overrides))))
+    (setq restclient-var-overrides (compat-call assoc-delete-all var-name restclient-var-overrides))))
 
 (defun restclient-set-var (var-name value)
   "Set VAR-NAME to VALUE for any subsequent requests."
