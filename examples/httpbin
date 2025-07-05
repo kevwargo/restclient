@@ -220,7 +220,6 @@ GET http://httpbin.org/ip
 GET http://httpbin.org/ip
 -> run-hook (restclient-set-var "@my-ip" (cdr (assq 'origin (json-read))))
 
-
 # multiple elsip hooks on call
 GET http://httpbin.org/response-headers?Content-Type=application/vnd.whatever%2Bjson;%20charset=UTF-8
 -> run-hook (message "hook 1")
@@ -237,9 +236,9 @@ Authorization: :auth-token
 -> run-hook (message (format "authenticated with '%s'" (restclient-get-var ":auth-token")))
 
 # saving header like csrf token for future usage
-GET http://some.api/csrf_token
+GET http://httpbin.org/response-headers?X-CSRF-Token=sometokenvalue
 -> run-hook (restclient-set-var-from-header ":csrftoken" "X-CSRF-Token")
 
-# use save header
-POST http://some.api/restricted
+# use saved header
+POST http://httpbin.org/post
 X-CSRF-Token: :csrftoken

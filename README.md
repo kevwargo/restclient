@@ -144,7 +144,11 @@ and the body.
 
     { "name": ":the-name" }
 
-Variables can also be set based on the body of a response using the per-request hooks
+Variables can also be set based on the headers or body of a response using the per-request hooks
+
+    # set a variable from a header value
+    GET http://httpbin.org/ip
+    -> run-hook (restclient-set-var-from-header ":my-length-var" "Content-Length")
 
     # set a variable :my-ip to the value of your ip address using elisp evaluated in the result buffer
     GET http://httpbin.org/ip

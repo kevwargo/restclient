@@ -192,6 +192,9 @@ Stored as an alist of name -> (hook-creation-func . description)")
 (defvar restclient-response-received-hook nil
   "Hook run after data is loaded into response buffer.")
 
+(defvar-local restclient--header-start-position nil
+  "Position in the buffer where headers start")
+
 (defcustom restclient-vars-max-passes 10
   "Maximum number of recursive variable references.
 This is to prevent hanging if two variables reference each other directly or
@@ -378,6 +381,7 @@ METHOD and URL are displayed along with the response headers."
           (or (eq (point) (point-min)) (insert "\n"))
 	  (unless restclient-response-body-only
             (let ((hstart (point)))
+              (setq restclient--header-start-position hstart)
               (insert method " " url "\n" headers)
               (insert (format "Request duration: %fs\n" (float-time (time-subtract restclient-request-time-end restclient-request-time-start))))
               (unless (member guessed-mode '(image-mode text-mode))
@@ -456,6 +460,7 @@ SAME-NAME: if non-nil, reuse the target buffer if it exists, otherwise generate
               (if same-name target-buffer-name (generate-new-buffer-name target-buffer-name)))))
         (with-current-buffer decoded-http-response-buffer
           (setq buffer-file-coding-system encoding)
+          (setq restclient--header-start-position (point-min))
           (save-excursion
             (erase-buffer)
             (insert-buffer-substring raw-http-response-buffer))
@@ -608,12 +613,21 @@ Match data must be set by caller."
     headers))
 
 (defun restclient-get-response-headers ()
-  "Returns alist of current response headers.
-Works *only* with with hook called from `restclient-http-send-current-raw',
-bound to `\\<restclient-mode-map>\\[restclient-http-send-current-raw]'."
-  (let ((start (point-min))
-        (headers-end (+ 1 (string-match "\n\n" (buffer-substring-no-properties (point-min) (point-max))))))
-    (restclient-parse-headers (buffer-substring-no-properties start headers-end))))
+  "Returns alist of current response headers."
+  (let* ((start restclient--header-start-position)
+         (headers-end (+ 1 (or (string-match "\n\n" (buffer-substring-no-properties start (point-max)))
+                               (buffer-size))))
+         (headers-commented-p (and (< 1 start) ;; Catches raw response buffers
+                                   (not (member major-mode '(image-mode text-mode)))))
+         (headers-string (buffer-substring-no-properties start headers-end)))
+    (when headers-commented-p
+      ;; Temporarily uncomment to extract string
+      (uncomment-region start headers-end)
+      (setq headers-end (+ 1 (or (string-match "\n\n" (buffer-substring-no-properties start (point-max)))
+                                 (buffer-size))))
+      (setq headers-string (buffer-substring-no-properties start headers-end))
+      (comment-region start headers-end))
+    (restclient-parse-headers headers-string)))
 
 (defun restclient-set-var-from-header (var header)
   "Record a dynamic variable VAR from response headers.
