@@ -706,7 +706,7 @@ VAR-NAME: a variable with or without decorations."
   "Look up the value of VAR-NAME in the current context.
 Context is defined by environment, dynamically set variables, and variables
 defined in BUFFER-NAME prior to BUFFER-POS."
-  (message (format "getting var %s form %s at %s" var-name buffer-name buffer-pos))
+  ;(message (format "getting var %s from %s at %s" var-name buffer-name buffer-pos))
   (let* ((var-name (restclient-sanitize-var-name var-name))
          (vars-at-point  (save-excursion
 			   (switch-to-buffer buffer-name)
@@ -808,6 +808,22 @@ ARGS is ignored."
   buffer is formatted. Equivalent to a restclient-response-loaded-hook
   that only runs for this request.
   eg. -> run-hook (message \"my hook called\")" )
+
+(defun restclient-save-body-function (filename _offset)
+  "Save the response to the FILENAME given in args."
+  (lambda ()
+    (let* ((start (point-min))
+           (end (if (< start restclient--header-start-position)
+                    (1- restclient--header-start-position)
+                  (point-max))))
+      (write-region start end filename)
+      (message "Response saved to \"%s\"" filename))))
+
+(restclient-register-result-func
+ "save-body" #'restclient-save-body-function
+ "Save the response body to file.  The argument to the hook is the
+name of the file to save.
+eg. -> save-body /tmp/myfile.json")
 
 ;;;###autoload
 (defun restclient-http-send-current (&optional raw stay-in-window suppress-response-buffer)

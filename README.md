@@ -235,6 +235,14 @@ And the request body may also contain surrounding context:
     < :myfile
     Are you switched on yet?
 
+# Saving responses
+
+Restclient can save the body of a file it receives to a file:
+
+    # save request body to a file
+    GET http://httpbin.org/ip
+    -> save-body /tmp/my-ip.json
+
 
 ### Caveats:
 

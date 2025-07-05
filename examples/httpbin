@@ -242,3 +242,7 @@ GET http://httpbin.org/response-headers?X-CSRF-Token=sometokenvalue
 # use saved header
 POST http://httpbin.org/post
 X-CSRF-Token: :csrftoken
+
+# save request body to a file
+GET http://httpbin.org/ip
+-> save-body /tmp/my-ip.json
