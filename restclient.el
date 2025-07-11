@@ -504,23 +504,26 @@ REPLACEMENTS is an alist containing the current variable values.
 Return a string with variables replaced with their values, possibly recursively."
   (if replacements
       (let ((current string)
+            (prev nil)
+            (regexp (regexp-opt (append
+                                 (mapcar #'(lambda (r)
+                                             (format ":%s" (car r)))
+                                         replacements)
+                                 (mapcar #'(lambda (r)
+                                             (format "{{%s}}" (car r)))
+                                         replacements))))
             (pass restclient-vars-max-passes)
             (continue t))
         (while (and continue (> pass 0))
           (setq pass (- pass 1))
+          (setq prev current)
           (setq current (replace-regexp-in-string
-                         (regexp-opt (append
-                                      (mapcar #'(lambda (r)
-                                                  (format ":%s" (car r)))
-                                              replacements)
-                                      (mapcar #'(lambda (r)
-                                                  (format "{{%s}}" (car r)))
-                                              replacements)))
+                         regexp
                          (lambda (key)
-                           (setq continue t)
                            (setq key (restclient-sanitize-var-name key))
                            (cdr (assoc key replacements)))
-                         current t t)))
+                         current t t))
+          (setq continue (not (equal prev current))))
         current)
     string))
 
