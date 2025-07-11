@@ -300,11 +300,13 @@ indirectly."
     (url-retrieve url 'restclient-http-handle-response
                   (append (list method url (if restclient-same-buffer-response
                                                restclient-same-buffer-response-name
-                                             (format "*HTTP %s %s*" method url))) handle-args) nil restclient-inhibit-cookies)))
+                                             (format "*HTTP %s %s*" method url)))
+                          handle-args)
+                  nil restclient-inhibit-cookies)))
 
-(defun restclient-prettify-response (method url)
+(defun restclient-prettify-response (method url status)
   "Format the result of the API call in a pleasing way.
-METHOD and URL are displayed along with the response headers."
+METHOD, URL and STATUS are displayed along with the response headers."
   (save-excursion
     (let ((start (point)) (guessed-mode) (end-of-headers))
       (while (and (not (looking-at restclient-empty-line-regexp))
@@ -383,7 +385,11 @@ METHOD and URL are displayed along with the response headers."
 	  (unless restclient-response-body-only
             (let ((hstart (point)))
               (setq restclient--header-start-position hstart)
-              (insert method " " url "\n" headers)
+              (insert method " " url "\n")
+              (cl-loop for (data event) on (reverse status) by #'cddr
+                       when (eq event :redirect)
+                       do (insert "Redirect: " data "\n"))
+              (insert headers)
               (insert (format "Request duration: %fs\n" (float-time (time-subtract restclient-request-time-end restclient-request-time-start))))
               (unless (member guessed-mode '(image-mode text-mode))
 		(comment-region hstart (point))))))))))
@@ -417,7 +423,7 @@ SUPPRESS-RESPONSE-BUFFER: do not show the reponse at all."
                             restclient-same-buffer-response)
         (run-hooks 'restclient-response-received-hook)
         (unless raw
-          (restclient-prettify-response method url))
+          (restclient-prettify-response method url status))
         (buffer-enable-undo)
 	(restclient-response-mode)
         (run-hooks 'restclient-response-loaded-hook)
