@@ -1,4 +1,4 @@
-# -*- mode: restclient; url-max-redirections: 0 -*-
+# -*- mode: restclient  -*-
 # Emacs restclient examples for httpbin.org
 # http://httpbin.org/: HTTP Request & Response Service
 
@@ -196,8 +196,12 @@ Content-Type: text/xml
 <AAA xmlns="ns"
      another-attr="x">
 </AAA>
-#
+
+# Use M-x set-variable url-max-redirections to 0
 GET http://httpbin.org/redirect-to?url=http%3A%2F%2Fexample.com%2F
+
+# Use M-x set-variable url-max-redirections to 10
+GET http://httpbin.org/redirect/5
 #
 :cookie=B=db9s6bpclha4g&b=3&s=eq
 
