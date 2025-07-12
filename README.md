@@ -320,6 +320,23 @@ __Default: nil__
 
 When non-nil, don't include the request details in the response buffer.
 
+### restclient-vars-max-passes
+
+__Default: 10__
+
+Maximum number of recursive variable references.
+This is to prevent hanging if two variables reference each other directly or
+indirectly.
+
+### restclient-user-agent
+
+__Default: nil__
+
+Controls the User Agent sent by default in requests.  Accepts the same
+values as `url-user-agent`, including `default` to let the URL library
+compute an appropriate string.  The default `nil` omits the user agent
+unless the header is set manually in each requests.
+
 # Known issues
 
 - Comment lines `#` act as end of entity. Yes, that means you can't post shell script or anything with hashes as PUT/POST entity. I'm fine with this right now,

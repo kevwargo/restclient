@@ -86,6 +86,25 @@
   :group 'restclient
   :type 'boolean)
 
+(defcustom restclient-vars-max-passes 10
+  "Maximum number of recursive variable references.
+This is to prevent hanging if two variables reference each other directly or
+indirectly."
+  :group 'restclient
+  :type 'integer)
+
+(defcustom restclient-user-agent nil
+  "User Agent used in the requests.
+Passed to `url-user-agent'.  See that variable for valid values.
+Default is nil, to allow requests to set User-Agent as a header."
+  :group 'restclient
+  :type '(choice
+          (string :tag "A static User-Agent string")
+          (function :tag "Call a function to get the User-Agent string")
+          (const :tag "No User-Agent at all" :value nil)
+          (const :tag "An string auto-generated according to `url-privacy-level'"
+                 :value default)))
+
 (defgroup restclient-faces nil
   "Faces used in Restclient Mode."
   :group 'restclient
@@ -194,14 +213,8 @@ Stored as an alist of name -> (hook-creation-func . description)")
   "Hook run after data is loaded into response buffer.")
 
 (defvar-local restclient--header-start-position nil
-  "Position in the buffer where headers start")
+  "Position in the buffer where headers start.")
 
-(defcustom restclient-vars-max-passes 10
-  "Maximum number of recursive variable references.
-This is to prevent hanging if two variables reference each other directly or
-indirectly."
-  :group 'restclient
-  :type 'integer)
 
 (defconst restclient-comment-separator "#")
 (defconst restclient-comment-start-regexp (concat "^" restclient-comment-separator))
@@ -258,13 +271,6 @@ indirectly."
     ad-do-it))
 (ad-activate 'url-cache-extract)
 
-(defadvice url-http-user-agent-string (around restclient-fix-3)
-  "Disable user-agent."
-  (if restclient-within-call
-      (setq ad-return-value nil)
-    ad-do-it))
-(ad-activate 'url-http-user-agent-string)
-
 (defun restclient-http-do (method url headers entity &rest handle-args)
   "Send ENTITY and HEADERS to URL as a METHOD request."
   (if restclient-log-request
@@ -278,7 +284,7 @@ indirectly."
         (url-mime-language-string nil)
         (url-mime-encoding-string nil)
         (url-mime-accept-string nil)
-        (url-personal-mail-address nil))
+        (url-user-agent restclient-user-agent))
 
     (dolist (header headers)
       (let* ((mapped (assoc-string (downcase (car header))
