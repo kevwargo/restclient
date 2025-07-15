@@ -15,6 +15,13 @@ GET http://httpbin.org/headers
 # Returns GET data.
 GET http://httpbin.org/get?some=example&params=for&testing=restclient
 
+# Returns GET data with parameters on continuation lines
+# Provided restclient-query-use-continuation-lines is set to 'smart
+GET http://httpbin.org/get
+    some = example
+    params = with weird/unusual
+    values[]=included!
+
 # Returns POST data.
 POST http://httpbin.org/post
 Content-Type: application/json

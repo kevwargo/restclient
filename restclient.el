@@ -105,6 +105,28 @@ Default is nil, to allow requests to set User-Agent as a header."
           (const :tag "An string auto-generated according to `url-privacy-level'"
                  :value default)))
 
+(defcustom restclient-query-use-continuation-lines nil
+  "Whether to allow request parameters to span multiple lines.
+Default is nil, query parameters must be part of the single line URL in the
+request, as the HTTP requires.  If non-nil, continuation lines must directly
+follow the initial request line, indented by whitespace.
+
+The value of this parameter also determines how the continuation lines
+are interpreted. Valid values are:
+* nil - Do not allow continuation lines (default).
+* `literal' - Append each continuation line to the query literally.
+* `smart' - Each continuation line is interpreted as a key/value pair,
+            separated by =.  Both keys and values are passed through
+            `url-hexify-string' before being appended to the query.
+            Separators between parameters are added automatically."
+  :group 'restclient
+  :type '(choice
+          (const :tag "Do not allow continuation lines.")
+          (const :tag "Append continuation lines literally."
+                 :value literal)
+          (const :tag "Continuation liens are key/value pairs."
+                 :value smart)))
+
 (defgroup restclient-faces nil
   "Faces used in Restclient Mode."
   :group 'restclient
@@ -223,6 +245,12 @@ Stored as an alist of name -> (hook-creation-func . description)")
 
 (defconst restclient-method-url-regexp
   "^[[:blank:]]*\\(GET\\|POST\\|DELETE\\|PUT\\|HEAD\\|OPTIONS\\|PATCH\\|PROPFIND\\) \\(.*\\)$")
+
+(defconst restclient-url-continuation-line-regexp
+  "^[[:blank:]]+\\(.*\\)$")
+
+(defconst restclient-url-continuation-key-value-regexp
+  "\\([^= ]+\\)\\s-*=\\s-*\\(.*\\)$")
 
 (defconst restclient-method-body-prohibited-regexp
   "^GET\\|HEAD$")
@@ -598,15 +626,16 @@ environment definitions."
   "Determine which variables are valid at the current position."
   (let ((vars nil)
         (bound (point)))
-    (save-excursion
-      (goto-char (point-min))
-      (while (search-forward-regexp restclient-var-regexp bound t)
-        (let ((name (or (match-string-no-properties 1)
-                        (match-string-no-properties 2)))
-              (should-eval (> (length (match-string 3)) 0))
-              (value (or (restclient-chop (match-string-no-properties 5)) (match-string-no-properties 4))))
-          (setq vars (cons (cons name (if should-eval (restclient-eval-var value) value)) vars))))
-      (append restclient-var-overrides vars restclient-var-defaults))))
+    (save-match-data
+     (save-excursion
+       (goto-char (point-min))
+       (while (search-forward-regexp restclient-var-regexp bound t)
+         (let ((name (or (match-string-no-properties 1)
+                         (match-string-no-properties 2)))
+               (should-eval (> (length (match-string 3)) 0))
+               (value (or (restclient-chop (match-string-no-properties 5)) (match-string-no-properties 4))))
+           (setq vars (cons (cons name (if should-eval (restclient-eval-var value) value)) vars))))
+       (append restclient-var-overrides vars restclient-var-defaults)))))
 
 (defun restclient-eval-var (string)
   "Evaluate the Lisp code contained in STRING.
@@ -748,6 +777,22 @@ defined in BUFFER-NAME prior to BUFFER-POS."
   (setq restclient-curr-request-functions nil)
   (remove-hook 'restclient-response-loaded-hook 'restclient-single-request-function))
 
+(defun restclient--parse-continuation-line (vars line separator)
+  "Read a key/value pair from LINE.
+Return a %-encoded line preceeded by SEPARATOR.
+Restclient variables in are expanded in keys and values separately,
+using definitions passed in VARS."
+  (if (string-match restclient-url-continuation-key-value-regexp line)
+      (let ((key (match-string-no-properties 1 line))
+            (val (match-string-no-properties 2 line)))
+        (concat separator
+                (url-hexify-string (restclient-replace-all-in-string vars key)
+                                   (append
+                                    url-unreserved-chars
+                                    '(?\[ ?\])))
+                "="
+                (url-hexify-string (restclient-replace-all-in-string vars val))))
+    (error "Line is not a valid key/value pair")))
 
 (defun restclient-http-parse-current-and-do (func &rest args)
   "Execute FUNC with the current request.
@@ -756,11 +801,30 @@ point as arguments, with ARGS included as the final argument."
   (save-excursion
     (goto-char (restclient-current-min))
     (when (re-search-forward restclient-method-url-regexp (point-max) t)
-      (let ((method (match-string-no-properties 1))
-            (url (string-trim (match-string-no-properties 2)))
-            (vars (restclient-find-vars-before-point))
-            (headers '()))
+      (let* ((vars (restclient-find-vars-before-point))
+             (method (match-string-no-properties 1))
+             (url (restclient-replace-all-in-string
+                   vars (string-trim (match-string-no-properties 2))))
+             (q-param-separator (if (memq ?? (string-to-list url))
+                                    "&"
+                                  "?"))
+             (headers '()))
         (forward-line)
+        (while (and restclient-query-use-continuation-lines
+                    (looking-at restclient-url-continuation-line-regexp))
+          (let ((line (match-string-no-properties 1)))
+            (setq url
+                  (concat url
+                          (cond
+                           ((eq 'literal restclient-query-use-continuation-lines)
+                            (restclient-replace-all-in-string vars (string-trim line)))
+                           ((eq 'smart restclient-query-use-continuation-lines)
+                            (restclient--parse-continuation-line vars line q-param-separator))
+                           (t
+                            (error "Unknown value for `restclient-query-use-continuation-lines': %s"
+                                   restclient-query-use-continuation-lines))))))
+          (setq q-param-separator "&")
+          (forward-line))
         (while (cond
 		((looking-at restclient-response-hook-regexp)
 		 (when-let* ((hook-function (restclient-parse-hook (match-string-no-properties 2)
@@ -777,8 +841,7 @@ point as arguments, with ARGS included as the final argument."
 	(when restclient-curr-request-functions
 	  (add-hook 'restclient-response-loaded-hook 'restclient-single-request-function))
         (let* ((cmax (restclient-current-max))
-               (entity (restclient-parse-body (buffer-substring (min (point) cmax) cmax) vars))
-               (url (restclient-replace-all-in-string vars url)))
+               (entity (restclient-parse-body (buffer-substring (min (point) cmax) cmax) vars)))
           (apply func method url headers entity args))))))
 
 (defun restclient-copy-curl-command ()

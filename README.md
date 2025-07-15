@@ -337,6 +337,25 @@ values as `url-user-agent`, including `default` to let the URL library
 compute an appropriate string.  The default `nil` omits the user agent
 unless the header is set manually in each requests.
 
+### restclient-query-use-continuation-lines
+
+__Default: nil__
+
+Whether to allow request parameters to span multiple lines.
+Default is nil, query parameters must be part of the single line URL in the
+request, as the HTTP requires.  If non-nil, continuation lines must directly
+follow the initial request line, indented by whitespace.
+
+The value of this parameter also determines how the continuation lines
+are interpreted.  Valid values are:
+* nil - Do not allow continuation lines (default).
+* `literal' - Append each continuation line to the query literally.
+* `smart' - Each continuation line is interpreted as a key/value pair,
+            separated by =.  Both keys and values are passed through
+            `url-hexify-string' before being appended to the query.
+            Separators between parameters are added automatically."
+
+
 # Known issues
 
 - Comment lines `#` act as end of entity. Yes, that means you can't post shell script or anything with hashes as PUT/POST entity. I'm fine with this right now,
