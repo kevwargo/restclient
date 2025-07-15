@@ -786,10 +786,7 @@ using definitions passed in VARS."
       (let ((key (match-string-no-properties 1 line))
             (val (match-string-no-properties 2 line)))
         (concat separator
-                (url-hexify-string (restclient-replace-all-in-string vars key)
-                                   (append
-                                    url-unreserved-chars
-                                    '(?\[ ?\])))
+                (url-hexify-string (restclient-replace-all-in-string vars key))
                 "="
                 (url-hexify-string (restclient-replace-all-in-string vars val))))
     (error "Line is not a valid key/value pair")))
