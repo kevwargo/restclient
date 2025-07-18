@@ -299,6 +299,22 @@ Stored as an alist of name -> (hook-creation-func . description)")
     ad-do-it))
 (ad-activate 'url-cache-extract)
 
+(defvar restclient--globals-stack
+  (make-hash-table))
+
+(defmacro restclient--push-global-var (var new-val)
+  "Save current value of VAR, and set VAR to NEW-VAL.
+Workaround for Emacs bug#61916"
+  `(progn
+     (push ,var (gethash ',var restclient--globals-stack ()))
+     (setq ,var ,new-val)))
+
+(defmacro restclient--pop-global-var (var)
+  "Restore old global value of VAR, if any."
+  `(when (and (hash-table-contains-p ',var restclient--globals-stack)
+              (< 0 (length (gethash ',var restclient--globals-stack))))
+     (setq ,var (pop (gethash ',var restclient--globals-stack)))))
+
 (defun restclient-http-do (method url headers entity &rest handle-args)
   "Send ENTITY and HEADERS to URL as a METHOD request."
   (if restclient-log-request
@@ -307,12 +323,13 @@ Stored as an alist of name -> (hook-creation-func . description)")
         (url-request-extra-headers '())
         (url-request-data (if (string-match restclient-method-body-prohibited-regexp method)
                               nil
-                            (encode-coding-string entity 'utf-8)))
-        (url-mime-charset-string (url-mime-charset-string))
-        (url-mime-language-string nil)
-        (url-mime-encoding-string nil)
-        (url-mime-accept-string nil)
-        (url-user-agent restclient-user-agent))
+                            (encode-coding-string entity 'utf-8))))
+
+    (restclient--push-global-var url-mime-charset-string (url-mime-charset-string))
+    (restclient--push-global-var url-mime-language-string nil)
+    (restclient--push-global-var url-mime-encoding-string nil)
+    (restclient--push-global-var url-mime-accept-string nil)
+    (restclient--push-global-var url-user-agent restclient-user-agent)
 
     (dolist (header headers)
       (let* ((mapped (assoc-string (downcase (car header))
@@ -448,6 +465,11 @@ STAY-IN-WINDOW: if non-nil, do not switch to the output buffer, only show it.
 SUPPRESS-RESPONSE-BUFFER: do not show the reponse at all."
   (setq restclient-within-call nil)
   (setq restclient-request-time-end (current-time))
+  (restclient--pop-global-var url-mime-charset-string)
+  (restclient--pop-global-var url-mime-language-string)
+  (restclient--pop-global-var url-mime-encoding-string)
+  (restclient--pop-global-var url-mime-accept-string)
+  (restclient--pop-global-var url-user-agent)
   (if (= (point-min) (point-max))
       (signal (car (plist-get status :error)) (cdr (plist-get status :error)))
     (when (buffer-live-p (current-buffer))
