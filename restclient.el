@@ -491,7 +491,8 @@ SUPPRESS-RESPONSE-BUFFER: do not show the reponse at all."
         (unless suppress-response-buffer
           (if stay-in-window
               (display-buffer (current-buffer) t)
-            (switch-to-buffer-other-window (current-buffer))))))))
+            (switch-to-buffer-other-window (current-buffer)))))
+      (message "")))) ;; Request complete, remove the "Contacting host"-message from url-http
 
 (defun restclient-decode-response (raw-http-response-buffer target-buffer-name same-name)
   "Decode the HTTP response.
