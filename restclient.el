@@ -24,6 +24,7 @@
 (require 'url)
 (require 'json)
 (require 'outline)
+(require 'view)
 (require 'compat)
 (eval-when-compile (require 'subr-x))
 (eval-when-compile
@@ -233,6 +234,9 @@ Stored as an alist of name -> (hook-creation-func . description)")
 
 (defvar restclient-response-received-hook nil
   "Hook run after data is loaded into response buffer.")
+
+(defvar restclient-current-request-marker (make-marker)
+  "Marker keeping track of the last executed request.")
 
 (defvar-local restclient--header-start-position nil
   "Position in the buffer where headers start.")
@@ -481,7 +485,8 @@ SUPPRESS-RESPONSE-BUFFER: do not show the reponse at all."
         (unless raw
           (restclient-prettify-response method url status))
         (buffer-enable-undo)
-	(restclient-response-mode)
+        (view-mode-enter)
+        (restclient--setup-response-buffer-map)
         (run-hooks 'restclient-response-loaded-hook)
         (unless suppress-response-buffer
           (if stay-in-window
@@ -522,6 +527,7 @@ SAME-NAME: if non-nil, reuse the target buffer if it exists, otherwise generate
              (get-buffer-create
               (if same-name target-buffer-name (generate-new-buffer-name target-buffer-name)))))
         (with-current-buffer decoded-http-response-buffer
+          (view-mode-exit t)
           (setq buffer-file-coding-system encoding)
           (setq restclient--header-start-position (point-min))
           (save-excursion
@@ -817,6 +823,7 @@ using definitions passed in VARS."
   "Execute FUNC with the current request.
 FUNC will receive the http method, url, headers and body of the request around
 point as arguments, with ARGS included as the final argument."
+  (set-marker restclient-current-request-marker (point))
   (save-excursion
     (goto-char (restclient-current-min))
     (when (re-search-forward restclient-method-url-regexp (point-max) t)
@@ -987,6 +994,15 @@ Optional argument SUPPRESS-RESPONSE-BUFFER do not display response buffer if t."
   (backward-char 1)
   (setq deactivate-mark nil))
 
+(defun restclient-repeat-last-request ()
+  "Repeat the last executed request."
+  (interactive)
+  (when (marker-buffer restclient-current-request-marker)
+    (save-excursion
+      (with-current-buffer (marker-buffer restclient-current-request-marker)
+        (goto-char restclient-current-request-marker)
+        (restclient-http-send-current-suppress-response-buffer)))))
+
 (defun restclient-show-info ()
   "Display a buffer with information about the current restclient context."
   (interactive)
@@ -1013,6 +1029,7 @@ Optional argument SUPPRESS-RESPONSE-BUFFER do not display response buffer if t."
 		  (insert "|--|\n\n")))
 
       (with-current-buffer (get-buffer-create restclient-info-buffer-name)
+        (view-mode-exit t)
 	;; insert our info
 	(erase-buffer)
 
@@ -1044,7 +1061,7 @@ Optional argument SUPPRESS-RESPONSE-BUFFER do not display response buffer if t."
 	(org-toggle-pretty-entities)
 	(org-table-iterate-buffer-tables)
 	(outline-show-all)
-	(restclient-response-mode)
+	(view-mode-enter)
 	(goto-char (point-min))))
     (switch-to-buffer-other-window restclient-info-buffer-name)))
 
@@ -1118,6 +1135,20 @@ Hide/show only happens if point is on the first line of a request."
     map)
   "Keymap for `restclient-mode'.")
 
+(defvar restclient-response-buffer-map
+  (let ((map (make-sparse-keymap))
+        (view-mode-map (cdr (assoc 'view-mode minor-mode-map-alist))))
+    (set-keymap-parent map view-mode-map)
+    (define-key map (kbd "g") 'restclient-repeat-last-request)
+    map)
+  "Keymap for restclient responses.
+Added to the default `view-mode-map' when displaying responses in view mode.")
+
+(defun restclient--setup-response-buffer-map ()
+  "Override `view-mode' keymap in response buffers."
+  (push `(view-mode . ,restclient-response-buffer-map)
+        minor-mode-overriding-map-alist))
+
 (define-minor-mode restclient-outline-mode
   "Minor mode to allow show/hide of request bodies by TAB."
       :init-value nil
@@ -1125,15 +1156,6 @@ Hide/show only happens if point is on the first line of a request."
       :keymap '(("\t" . restclient-toggle-body-visibility-or-indent)
                 ("\C-c\C-a" . restclient-toggle-body-visibility-or-indent))
       :group 'restclient)
-
-(define-minor-mode restclient-response-mode
-  "Minor mode to allow additional keybindings in restclient response buffer."
-  :init-value nil
-  :lighter nil
-  :keymap '(("q" . (lambda ()
-		     (interactive)
-		     (quit-window (get-buffer-window (current-buffer))))))
-  :group 'restclient)
 
 ;;;###autoload
 (define-derived-mode restclient-mode fundamental-mode "REST Client"

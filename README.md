@@ -93,6 +93,16 @@ HTTPS and image display requires additional dll's on windows (libtls, libpng, li
 
 More examples can be found in the `examples` directory.
 
+Responses are displayed in a buffer in an appropriate major mode (see
+`restclient-content-type-modes`).  Additionally, the `view-mode` minor
+mode is activated.  We override the `g` keybinding in `view-mode` to
+repeat the previous http request.
+
+If you need to edit the response in the response buffer, `e` is the
+key to press.  If you then wish to get back into view-mode, `M-x
+view-mode` is your friend.  For other keybindings, check the docstring
+of the `view-mode` function.
+
 # In-buffer variables
 
 You declare a variable like this:
