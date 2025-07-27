@@ -315,8 +315,7 @@ Workaround for Emacs bug#61916"
 
 (defmacro restclient--pop-global-var (var)
   "Restore old global value of VAR, if any."
-  `(when (and (hash-table-contains-p ',var restclient--globals-stack)
-              (< 0 (length (gethash ',var restclient--globals-stack))))
+  `(when (> (length (gethash ',var restclient--globals-stack)) 0)
      (setq ,var (pop (gethash ',var restclient--globals-stack)))))
 
 (defun restclient-http-do (method url headers entity &rest handle-args)
