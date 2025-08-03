@@ -368,22 +368,29 @@ Workaround for Emacs bug#61916"
                           handle-args)
                   nil restclient-inhibit-cookies)))
 
+(defun restclient--preferred-mode (content-type)
+  "Look up the user's preferred mode for handling content of type CONTENT-TYPE.
+
+The user defines their preferences in `restclient-content-type-modes'."
+  (cdr (assoc-string content-type restclient-content-type-modes t)))
+
 (defun restclient-prettify-response (method url status)
   "Format the result of the API call in a pleasing way.
 METHOD, URL and STATUS are displayed along with the response headers."
   (save-excursion
-    (let ((start (point)) (guessed-mode) (end-of-headers))
+    (let ((start (point))
+          (guessed-mode)
+          (end-of-headers))
       (while (and (not (looking-at restclient-empty-line-regexp))
                   (eq (progn
                         (when (looking-at restclient-content-type-regexp)
                           (setq guessed-mode
-                                (cdr (assoc-string (concat
-                                                    (match-string-no-properties 1)
-                                                    "/"
-                                                    (match-string-no-properties 2))
-                                                   restclient-content-type-modes
-                                                   t))))
-                        (forward-line)) 0)))
+                                (restclient--preferred-mode (concat
+                                                             (match-string-no-properties 1)
+                                                             "/"
+                                                             (match-string-no-properties 2)))))
+                        (forward-line))
+                      0)))
       (setq end-of-headers (point))
       (while (and (looking-at restclient-empty-line-regexp)
                   (eq (forward-line) 0)))
@@ -391,14 +398,15 @@ METHOD, URL and STATUS are displayed along with the response headers."
         (setq guessed-mode
               (or (assoc-default nil
                                  ;; magic mode matches
-                                 '(("<\\?xml " . xml-mode)
-                                   ("{\\s-*\"" . js-mode))
+                                 `(("<\\?xml " . ,(restclient--preferred-mode "application/xml"))
+                                   ("{\\s-*\"" . ,(restclient--preferred-mode "application/json")))
                                  (lambda (re _dummy)
-                                   (looking-at re))) 'js-mode)))
+                                   (looking-at re)))
+                  (restclient--preferred-mode "application/json"))))
       (let ((headers (buffer-substring-no-properties start end-of-headers)))
         (when guessed-mode
           (delete-region start (point))
-          (unless (eq guessed-mode 'image-mode)
+          (unless (eq guessed-mode (restclient--preferred-mode "image/png"))
             (cond ((and restclient-response-size-threshold
                         (> (buffer-size) (* restclient-response-size-threshold
                                             restclient-threshold-multiplier)))
@@ -422,19 +430,19 @@ METHOD, URL and STATUS are displayed along with the response headers."
                 (font-lock-fontify-buffer))))
 
           (cond
-           ((eq guessed-mode 'xml-mode)
+           ((eq guessed-mode (restclient--preferred-mode "application/xml"))
             (goto-char (point-min))
             (while (search-forward-regexp "\>[ \\t]*\<" nil t)
               (backward-char) (insert "\n"))
             (indent-region (point-min) (point-max)))
 
-           ((eq guessed-mode 'image-mode)
+           ((eq guessed-mode (restclient--preferred-mode "image/png"))
             (let* ((img (buffer-string)))
               (delete-region (point-min) (point-max))
               (fundamental-mode)
               (insert-image (create-image img nil t))))
 
-           ((eq guessed-mode 'js-mode)
+           ((eq guessed-mode (restclient--preferred-mode "application/json"))
             (let ((json-special-chars (remq (assoc ?/ json-special-chars) json-special-chars))
 		  ;; Emacs 27 json.el uses `replace-buffer-contents' for
 		  ;; pretty-printing which is great because it keeps point and
@@ -455,7 +463,8 @@ METHOD, URL and STATUS are displayed along with the response headers."
                        do (insert "Redirect: " data "\n"))
               (insert headers)
               (insert (format "Request duration: %fs\n" (float-time (time-subtract restclient-request-time-end restclient-request-time-start))))
-              (unless (member guessed-mode '(image-mode text-mode))
+              (unless (member guessed-mode (list (restclient--preferred-mode "image/png")
+                                                 (restclient--preferred-mode "text/plain")))
 		(comment-region hstart (point))))))))))
 
 (defun restclient-prettify-json-unicode ()
@@ -701,7 +710,8 @@ Match data must be set by caller."
          (headers-end (+ 1 (or (string-match "\n\n" (buffer-substring-no-properties start (point-max)))
                                (buffer-size))))
          (headers-commented-p (and (< 1 start) ;; Catches raw response buffers
-                                   (not (member major-mode '(image-mode text-mode)))))
+                                   (not (member major-mode (list (restclient--preferred-mode "image/png")
+                                                                 (restclient--preferred-mode "text/plain"))))))
          (headers-string (buffer-substring-no-properties start headers-end)))
     (when headers-commented-p
       ;; Temporarily uncomment to extract string
