@@ -32,6 +32,15 @@
       (require 'cl)
     (require 'cl-lib)))
 
+(eval-when-compile
+  (unless (functionp 'hash-table-contains-p)
+    (let ((missing (make-symbol "missing")))
+      (defsubst hash-table-contains-p (key table)
+        "Return non-nil if TABLE has an element with KEY."
+        (declare (side-effect-free t)
+                 (important-return-value t))
+        (not (eq (gethash key table missing) missing))))))
+
 (defgroup restclient nil
   "An interactive HTTP client for Emacs."
   :group 'tools)
