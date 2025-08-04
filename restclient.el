@@ -492,7 +492,10 @@ SUPPRESS-RESPONSE-BUFFER: do not show the reponse at all."
   (restclient--pop-global-var url-mime-accept-string)
   (restclient--pop-global-var url-user-agent)
   (if (= (point-min) (point-max))
-      (signal (car (plist-get status :error)) (cdr (plist-get status :error)))
+      (let ((error-status (plist-get status :error)))
+        (if error-status
+            (error (format "%s: %s" (car error-status) (cdr error-status)))
+          (error "Empty response from server")))
     (when (buffer-live-p (current-buffer))
       (with-current-buffer (restclient-decode-response
                             (current-buffer)
