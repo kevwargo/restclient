@@ -37,8 +37,7 @@
     (let ((missing (make-symbol "missing")))
       (defsubst hash-table-contains-p (key table)
         "Return non-nil if TABLE has an element with KEY."
-        (declare (side-effect-free t)
-                 (important-return-value t))
+        (declare (side-effect-free t))
         (not (eq (gethash key table missing) missing))))))
 
 (defgroup restclient nil
