@@ -72,6 +72,9 @@ Content-Type: application/xml
 DELETE http://httpbin.org/delete
 If-Match: "*"
 
+# Return an image
+GET http://httpbin.org/image/png
+
 # HTTP Status codes
 # 404
 GET http://httpbin.org/status/404
@@ -120,7 +123,34 @@ Content-Type: application/json
 POST http://httpbin.org/post
 
 pwd=1234
-#
+
+# Form data - alternative 1
+POST http://httpbin.org/post
+Content-type: application/x-www-form-urlencoded
+
+key1=value1&key2=value2
+
+# Form data - alternative 2
+POST http://httpbin.org/post
+Content-type: multipart/form-data; boundary=randomString2354
+
+--randomString2354
+Content-Disposition: form-data; name="key-1"
+
+value 1
+--randomString2354
+Content-Disposition: form-data; name="nsswitch"; filename="nsswitch.conf"
+Content-type: application/octet-stream
+
+< /etc/nsswitch.conf
+--randomString2354
+Content-Disposition: form-data; name="nsswitch2"; filename="nsswitch2.conf"
+Content-type: application/octet-stream
+
+< /etc/nsswitch.conf
+--randomString2354--
+
+# 
 : = foo\bar
 POST http://httpbin.org/post
 
