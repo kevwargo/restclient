@@ -742,9 +742,8 @@ will be replaced with the contents of `/file/path'."
   (replace-regexp-in-string
    restclient-file-regexp
    (lambda (match)
-     (string-match restclient-file-regexp match)
      (restclient-read-file (match-string 1 match)))
-   entity))
+   entity t t))
 
 (defun restclient-parse-body (entity vars)
   "Prepare a request body for sending.
