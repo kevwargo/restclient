@@ -148,6 +148,12 @@ will be temporarily set to that number."
           (const :tag "Do not follow redirects" :value nil)
           (integer :tag "Follow this many redirects")))
 
+(defcustom restclient-results-in-view-mode t
+  "Determines if the response buffer should be put in view-mode or left
+editable."
+  :group 'restclient
+  :type 'boolean)
+
 (defgroup restclient-faces nil
   "Faces used in Restclient Mode."
   :group 'restclient
@@ -526,7 +532,8 @@ SUPPRESS-RESPONSE-BUFFER: do not show the reponse at all."
         (unless raw
           (restclient-prettify-response method url status))
         (buffer-enable-undo)
-        (view-mode-enter)
+        (when restclient-results-in-view-mode
+          (view-mode-enter))
         (restclient--setup-response-buffer-map)
         (run-hooks 'restclient-response-loaded-hook)
         (unless suppress-response-buffer

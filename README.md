@@ -375,6 +375,12 @@ chain before giving up.  If nil, no redirections will be followed.  If
 an integer, `url-max-redirections` will be temporarily set to that
 number.
 
+### restclient-results-in-view-mode
+
+__Default: t__
+
+Determines if the response buffer should be put in view-mode or left
+editable.
 
 # Known issues
 
