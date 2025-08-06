@@ -136,6 +136,18 @@ are interpreted. Valid values are:
           (const :tag "Continuation liens are key/value pairs."
                  :value smart)))
 
+(defcustom restclient-follow-redirects t
+  "Whether restclient follows redirects.
+If t, the default, restclient will follow up to `url-max-redirections'
+links in the redirection chain before giving up.  If nil, no
+redirections will be followed.  If an integer, `url-max-redirections'
+will be temporarily set to that number."
+  :group 'restclient
+  :type '(choice
+          (const :tag "Follow redirects" :value t)
+          (const :tag "Do not follow redirects" :value nil)
+          (integer :tag "Follow this many redirects")))
+
 (defgroup restclient-faces nil
   "Faces used in Restclient Mode."
   :group 'restclient
@@ -342,6 +354,14 @@ Workaround for Emacs bug#61916"
     (restclient--push-global-var url-mime-encoding-string nil)
     (restclient--push-global-var url-mime-accept-string nil)
     (restclient--push-global-var url-user-agent restclient-user-agent)
+    (restclient--push-global-var url-max-redirections
+                                 (cond
+                                  ((not restclient-follow-redirects)
+                                   0)
+                                  ((integerp restclient-follow-redirects)
+                                   restclient-follow-redirects)
+                                  (t
+                                   url-max-redirections)))
 
     (dolist (header headers)
       (let* ((mapped (assoc-string (downcase (car header))
@@ -491,6 +511,7 @@ SUPPRESS-RESPONSE-BUFFER: do not show the reponse at all."
   (restclient--pop-global-var url-mime-encoding-string)
   (restclient--pop-global-var url-mime-accept-string)
   (restclient--pop-global-var url-user-agent)
+  (restclient--pop-global-var url-max-redirections)
   (if (= (point-min) (point-max))
       (let ((error-status (plist-get status :error)))
         (if error-status

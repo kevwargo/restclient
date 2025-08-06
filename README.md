@@ -365,6 +365,16 @@ are interpreted.  Valid values are:
             `url-hexify-string' before being appended to the query.
             Separators between parameters are added automatically."
 
+### restclient-follow-redirects
+
+__Default: t__
+
+Whether restclient follows redirects.  If t, the default, restclient
+will follow up to `url-max-redirections` links in the redirection
+chain before giving up.  If nil, no redirections will be followed.  If
+an integer, `url-max-redirections` will be temporarily set to that
+number.
+
 
 # Known issues
 
