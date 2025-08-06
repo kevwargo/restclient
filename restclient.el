@@ -319,13 +319,13 @@ Stored as an alist of name -> (hook-creation-func . description)")
 Workaround for Emacs bug#61916"
   `(progn
      (push ,var (gethash ',var restclient--globals-stack ()))
-     (setq ,var ,new-val)))
+     (setq-default ,var ,new-val)))
 
 (defmacro restclient--pop-global-var (var)
   "Restore old global value of VAR, if any."
   `(when (and (hash-table-contains-p ',var restclient--globals-stack)
               (< 0 (length (gethash ',var restclient--globals-stack))))
-     (setq ,var (pop (gethash ',var restclient--globals-stack)))))
+     (setq-default ,var (pop (gethash ',var restclient--globals-stack)))))
 
 (defun restclient-http-do (method url headers entity &rest handle-args)
   "Send ENTITY and HEADERS to URL as a METHOD request."
