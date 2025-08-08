@@ -316,18 +316,17 @@ Stored as an alist of name -> (hook-creation-func . description)")
 ;; password should an API call encounter a permission-denied response.
 ;; This API is meant to be usable without constant asking for username
 ;; and password.
-(defadvice url-http-handle-authentication (around restclient-fix)
+
+(define-advice url-http-handle-authentication (:around (orig &rest args) restclient-disable-auth)
   "Disable interactive request for username/password."
   (if restclient-within-call
-      (setq ad-return-value t)
-    ad-do-it))
-(ad-activate 'url-http-handle-authentication)
+      t ;; Means authorization failed.
+    (apply orig args)))
 
-(defadvice url-cache-extract (around restclient-fix-2)
+(define-advice url-cache-extract (:around (orig &rest args) restclient-disable-cache)
   "Disable cache."
   (unless restclient-within-call
-    ad-do-it))
-(ad-activate 'url-cache-extract)
+    (apply orig args)))
 
 (defvar restclient--globals-stack
   (make-hash-table))
@@ -1051,6 +1050,9 @@ Optional argument SUPPRESS-RESPONSE-BUFFER do not display response buffer if t."
       (with-current-buffer (marker-buffer restclient-current-request-marker)
         (goto-char restclient-current-request-marker)
         (restclient-http-send-current-suppress-response-buffer)))))
+
+(declare-function org-toggle-pretty-entities "org")
+(declare-function org-table-iterate-buffer-tables "org-table")
 
 (defun restclient-show-info ()
   "Display a buffer with information about the current restclient context."
