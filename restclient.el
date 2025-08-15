@@ -962,21 +962,30 @@ ARGS is ignored."
   that only runs for this request.
   eg. -> run-hook (message \"my hook called\")" )
 
-(defun restclient-save-body-function (filename _offset)
-  "Save the response to the FILENAME given in args."
+(defun restclient-save-body-function (filename append)
+  "Save the response to the FILENAME given in args.
+If APPEND is non-nil, appends to the file."
   (lambda ()
     (let* ((start (point-min))
            (end (if (< start restclient--header-start-position)
                     (1- restclient--header-start-position)
                   (point-max))))
-      (write-region start end filename)
+      (write-region start end filename append)
       (message "Response saved to \"%s\"" filename))))
 
 (restclient-register-result-func
- "save-body" #'restclient-save-body-function
+ "save-body" #'(lambda (args _offset)
+                 (restclient-save-body-function args nil))
  "Save the response body to file.  The argument to the hook is the
 name of the file to save.
 eg. -> save-body /tmp/myfile.json")
+
+(restclient-register-result-func
+ "append-body" #'(lambda (args _offset)
+                   (restclient-save-body-function args t))
+ "Append the response body to file.  The argument to the hook is the
+name of the file to append to.
+eg. -> append-body /tmp/myfile.json")
 
 ;;;###autoload
 (defun restclient-http-send-current (&optional raw stay-in-window suppress-response-buffer)

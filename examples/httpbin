@@ -287,3 +287,7 @@ X-CSRF-Token: :csrftoken
 # save request body to a file
 GET http://httpbin.org/ip
 -> save-body /tmp/my-ip.json
+
+# append request body to a file
+GET http://httpbin.org/ip
+-> append-body /tmp/my-ip.json

@@ -247,12 +247,15 @@ And the request body may also contain surrounding context:
 
 # Saving responses
 
-Restclient can save the body of a file it receives to a file:
+Restclient can save or append the body of a response it receives to a file:
 
     # save request body to a file
     GET http://httpbin.org/ip
     -> save-body /tmp/my-ip.json
 
+    # append request body to a file
+    GET http://httpbin.org/ip
+    -> append-body /tmp/my-ip.json
 
 ### Caveats:
 
