@@ -93,6 +93,8 @@ HTTPS and image display requires additional dll's on windows (libtls, libpng, li
 
 More examples can be found in the `examples` directory.
 
+# Response buffer
+
 Responses are displayed in a buffer in an appropriate major mode (see
 `restclient-content-type-modes`).  Additionally, the `view-mode` minor
 mode is activated.  We override the `g` keybinding in `view-mode` to
@@ -102,6 +104,10 @@ If you need to edit the response in the response buffer, `e` is the
 key to press.  If you then wish to get back into view-mode, `M-x
 view-mode` is your friend.  For other keybindings, check the docstring
 of the `view-mode` function.
+
+If you have the `json-navigator` package installed, `j` in a response
+buffer containing json data will open a hierarchical view of the
+response.
 
 # In-buffer variables
 
@@ -400,6 +406,7 @@ but may use more unique separator in future.
 - [company-restclient](https://github.com/iquiw/company-restclient): It provides auto-completion for HTTP methods and headers in restclient-mode. Completion source is given by know-your-http-well.
 - [ob-restclient](https://github.com/alf/ob-restclient.el): An extension to restclient.el for emacs that provides org-babel support.
 - [restclient.vim](https://github.com/bounceme/restclient.vim): Brings the restclient to vim! Responses display in vim's internal pager.
+- [json-navigator](https://github.com/DamienCassou/json-navigator): Another way of viewing JSON data.
 
 # License
 

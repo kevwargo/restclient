@@ -1060,6 +1060,19 @@ Optional argument SUPPRESS-RESPONSE-BUFFER do not display response buffer if t."
         (goto-char restclient-current-request-marker)
         (restclient-http-send-current-suppress-response-buffer)))))
 
+(declare-function json-navigator-navigate-after-point "ext:json-navigate")
+
+(defun restclient-json-navigate-response ()
+  "Run the current json response through json-navigator, if it's installed."
+  (interactive)
+  (cond ((not (fboundp 'json-navigator-navigate-after-point))
+         (message "json-navigator is not installed"))
+        ((not (eq major-mode (restclient--preferred-mode "application/json")))
+         (message "Response buffer is not in JS mode"))
+        (t
+         (goto-char (point-min))
+         (json-navigator-navigate-after-point))))
+
 (declare-function org-toggle-pretty-entities "org")
 (declare-function org-table-iterate-buffer-tables "org-table")
 
@@ -1200,6 +1213,7 @@ Hide/show only happens if point is on the first line of a request."
         (view-mode-map (cdr (assoc 'view-mode minor-mode-map-alist))))
     (set-keymap-parent map view-mode-map)
     (define-key map (kbd "g") 'restclient-repeat-last-request)
+    (define-key map (kbd "j") 'restclient-json-navigate-response)
     map)
   "Keymap for restclient responses.
 Added to the default `view-mode-map' when displaying responses in view mode.")
