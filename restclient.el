@@ -765,11 +765,16 @@ HEADER is the name of the header to look up in the response."
 (defun restclient-replace-path-with-contents (entity)
   "Include file contents in request.
 ENTITY is the request body, Possibly with `< /file/path' embeded, which
-will be replaced with the contents of `/file/path'."
+will be replaced with the contents of `/file/path' if it exists.  If
+`/file/path' does not exist, the construct may be an XML tag or other
+data, not a file embedding, and will not be replaced."
   (replace-regexp-in-string
    restclient-file-regexp
    (lambda (match)
-     (restclient-read-file (match-string 1 match)))
+     (let ((filename (match-string 1 match)))
+       (if (file-exists-p filename)
+           (restclient-read-file filename)
+         match)))
    entity t t))
 
 (defun restclient-parse-body (entity vars)
