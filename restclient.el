@@ -32,14 +32,6 @@
       (require 'cl)
     (require 'cl-lib)))
 
-(eval-when-compile
-  (unless (functionp 'hash-table-contains-p)
-    (let ((missing (make-symbol "missing")))
-      (defsubst hash-table-contains-p (key table)
-        "Return non-nil if TABLE has an element with KEY."
-        (declare (side-effect-free t))
-        (not (eq (gethash key table missing) missing))))))
-
 (defgroup restclient nil
   "An interactive HTTP client for Emacs."
   :group 'tools)
@@ -357,8 +349,7 @@ Workaround for Emacs bug#61916"
 
 (defmacro restclient--pop-global-var (var)
   "Restore old global value of VAR, if any."
-  `(when (and (hash-table-contains-p ',var restclient--globals-stack)
-              (< 0 (length (gethash ',var restclient--globals-stack))))
+  `(when (consp (gethash ',var restclient--globals-stack))
      (setq-default ,var (pop (gethash ',var restclient--globals-stack)))))
 
 (defun restclient-http-do (method url headers entity &rest handle-args)
